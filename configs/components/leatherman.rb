@@ -20,7 +20,11 @@ component 'leatherman' do |pkg, settings, platform|
   elsif platform.is_windows?
     pkg.build_requires 'cmake'
     pkg.build_requires "pl-gettext-#{platform.architecture}"
-  elsif platform.name =~ /el-[67]|redhatfips-7|sles-1[12]|ubuntu-18.04-amd64/
+  elsif platform.name == 'sles-11-x86_64'
+    pkg.build_requires 'pl-cmake'
+    pkg.build_requires 'pl-gettext'
+    pkg.build_requires 'runtime'
+  elsif platform.name =~ /el-[67]|redhatfips-7|sles-12|ubuntu-18.04-amd64/
     pkg.build_requires 'pl-cmake'
     pkg.build_requires 'pl-gettext'
     pkg.build_requires 'runtime'
@@ -90,7 +94,11 @@ component 'leatherman' do |pkg, settings, platform|
 
     # Use environment variable set in environment.bat to find locale files
     leatherman_locale_var = "-DLEATHERMAN_LOCALE_VAR='PUPPET_DIR' -DLEATHERMAN_LOCALE_INSTALL='share/locale'"
-  elsif platform.name =~ /el-[67]|redhatfips-7|sles-1[12]|ubuntu-18.04-amd64/
+  elsif platform.name == 'sles-11-x86_64'
+    cmake = 'env LD_LIBRARY_PATH=/opt/pl-build-tools/lib64 /opt/pl-build-tools/bin/cmake'
+    toolchain = '-DCMAKE_TOOLCHAIN_FILE=/opt/pl-build-tools/pl-build-toolchain.cmake'
+    special_flags += " -DCMAKE_CXX_FLAGS='-Wno-deprecated-declarations -Wno-error=class-memaccess -Wno-error=ignored-qualifiers -Wno-error=catch-value' "
+  elsif platform.name =~ /el-[67]|redhatfips-7|sles-12|ubuntu-18.04-amd64/
     toolchain = '-DCMAKE_TOOLCHAIN_FILE=/opt/pl-build-tools/pl-build-toolchain.cmake'
     cmake = '/opt/pl-build-tools/bin/cmake'
     special_flags += " -DCMAKE_CXX_FLAGS='-Wno-deprecated-declarations' "
@@ -149,8 +157,10 @@ component 'leatherman' do |pkg, settings, platform|
     test_locale = 'LANG=C LC_ALL=C' if platform.is_solaris? || platform.name =~ /debian-10/
 
     pkg.check do
+      ## LD_LIBRARY_PATH hardwired for demonstration. Likely needs to be converted to
+      ## a variable for the various platform support.
       ["LEATHERMAN_RUBY=#{settings[:libdir]}/$(shell #{ruby} -e 'print RbConfig::CONFIG[\"LIBRUBY_SO\"]') \
-       LD_LIBRARY_PATH=#{settings[:libdir]} LIBPATH=#{settings[:libdir]} #{test_locale} #{make} test ARGS=-V"]
+       LD_LIBRARY_PATH=/opt/pl-build-tools/lib64 LIBPATH=#{settings[:libdir]} #{test_locale} #{make} test ARGS=-V"]
     end
   end
 
